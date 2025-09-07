@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+import argparse
+import requests
+import json
+import sys
+
+def track_url(url, method="GET", headers=False):
+    try:
+        session = requests.Session()
+        req_method = session.head if method.upper() == "HEAD" else session.get
+        resp = req_method(url, allow_redirects=True)
+        history = resp.history
+
+        result = []
+        for i, r in enumerate(history, 1):
+            hop = {
+                "step": i,
+                "status": r.status_code,
+                "url": r.url,
+                "location": r.headers.get("Location"),
+            }
+            if headers:
+                hop["headers"] = dict(r.headers)
+            result.append(hop)
+
+        final = {
+            "step": len(history) + 1,
+            "status": resp.status_code,
+            "url": resp.url,
+        }
+        if headers:
+            final["headers"] = dict(resp.headers)
+        result.append(final)
+
+        return result
+    except Exception as e:
+        sys.stderr.write(f"Error: {e}\n")
+        sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="linktracko",
+        description="Track the full redirect chain of a link."
+    )
+    parser.add_argument("url", help="The URL to track")
+    parser.add_argument(
+        "--method", choices=["GET", "HEAD"], default="GET",
+        help="HTTP method to use (default: GET)"
+    )
+    parser.add_argument(
+        "--headers", action="store_true",
+        help="Show response headers at each step"
+    )
+    parser.add_argument(
+        "--json", action="store_true",
+        help="Output results in JSON format"
+    )
+    parser.add_argument(
+        "-s", "--simple", action="store_true",
+        help="Show a simplified path (just URLs in order)"
+    )
+
+    args = parser.parse_args()
+
+    result = track_url(args.url, method=args.method, headers=args.headers)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    elif args.simple:
+        print(" -> ".join([hop["url"] for hop in result]))
+    else:
+        print("Redirect chain:")
+        for hop in result[:-1]:
+            print(f"{hop['step']}. {hop['url']}  ->  {hop['location']} (status {hop['status']})")
+        final = result[-1]
+        print(f"Final ({final['status']}): {final['url']}")
+
+
+if __name__ == "__main__":
+    main()
