@@ -19,6 +19,17 @@ Inspired by tools like `yt-dlp` and `ani-cli`, it lets you see exactly where a s
 
 ### From source
 Clone the repo:
-```bash
+
 git clone https://github.com/yourusername/linktracko.git
 cd linktracko
+Make it executable:
+
+chmod +x linktracko
+Install system-wide (requires sudo):
+
+sudo mv linktracko /usr/local/bin/
+
+Or install for your user only:
+
+mkdir -p ~/.local/bin
+mv linktracko ~/.local/bin/
